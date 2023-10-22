@@ -320,7 +320,7 @@ static auto QueryDeviceWaveOps() -> bool
 
 static auto CreateD3D12Device() -> bool
 {
-    HRESULT hRes = 0;
+    HRESULT hRes = S_OK;
 
 #if defined(DEBUG) || defined(_DEBUG)
     // In debug mode, we're going to enable the debug layer
@@ -540,18 +540,31 @@ static auto CreateRootSignature() -> bool
     ID3DBlob* signature = nullptr;
     ID3DBlob* error = nullptr;
     HRESULT hRes = D3D12SerializeRootSignature(&rootSignatureDesc, D3D_ROOT_SIGNATURE_VERSION_1, &signature, &error);
-    if (FAILED(hRes))
+    do
     {
-        fprintf(stderr, "D3D12SerializeRootSignature failed: %ld\n", hRes);
-        return false;
-    }
+        if (FAILED(hRes))
+        {
+            fprintf(stderr, "D3D12SerializeRootSignature failed: %ld\n", hRes);
+            break;
+        }
 
-    hRes = s_device->CreateRootSignature(0, signature->GetBufferPointer(), signature->GetBufferSize(), IID_PPV_ARGS(&s_rootSignature));
-    if (FAILED(hRes))
-    {
-        fprintf(stderr, "CreateRootSignature failed: %ld\n", hRes);
-        return false;
+        hRes = s_device->CreateRootSignature(0, signature->GetBufferPointer(), signature->GetBufferSize(), IID_PPV_ARGS(&s_rootSignature));
+        if (FAILED(hRes))
+        {
+            fprintf(stderr, "CreateRootSignature failed: %ld\n", hRes);
+            break;
+        }
+    } 
+    while (false);
+
+    if (signature != nullptr) {
+        signature->Release();
     }
+    if (error != nullptr) {
+        error->Release();
+    }
+    
+    if (FAILED(hRes)) return false;
 
     return true;
 }
